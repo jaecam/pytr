@@ -38,28 +38,9 @@ class Portfolio:
 
             await self.tr.unsubscribe(subscription_id)
 
-        # Populate netValue for each ISIN
-        positions = self.portfolio['positions']
-        subscriptions = {}
-        for pos in sorted(positions, key=lambda x: x['netSize'], reverse=True):
-            isin = pos['instrumentId']
-            # subscription_id = await self.tr.instrument_details(pos['instrumentId'])
-            subscription_id = await self.tr.ticker(isin, exchange='LSX')
-            subscriptions[subscription_id] = pos
-
-        while len(subscriptions) > 0:
-            subscription_id, subscription, response = await self.tr.recv()
-
-            if subscription['type'] == 'ticker':
-                await self.tr.unsubscribe(subscription_id)
-                pos = subscriptions[subscription_id]
-                subscriptions.pop(subscription_id, None)
-                pos['netValue'] = float(response['last']['price']) * float(pos['netSize'])
-            else:
-                print(f"unmatched subscription of type '{subscription['type']}':\n{preview(response)}")
-
         # Populate name for each ISIN
         subscriptions = {}
+        positions = self.portfolio['positions']
         for pos in sorted(positions, key=lambda x: x['netSize'], reverse=True):
             isin = pos['instrumentId']
             subscription_id = await self.tr.instrument_details(pos['instrumentId'])
@@ -73,8 +54,44 @@ class Portfolio:
                 pos = subscriptions[subscription_id]
                 subscriptions.pop(subscription_id, None)
                 pos['name'] = response['shortName']
+                pos['exchangeIds'] = response['exchangeIds']
             else:
                 print(f"unmatched subscription of type '{subscription['type']}':\n{preview(response)}")
+
+        # Populate netValue for each ISIN
+        subscriptions = {}
+        for pos in sorted(positions, key=lambda x: x['netSize'], reverse=True):
+            isin = pos['instrumentId']
+            if len(pos['exchangeIds']) > 0:
+                subscription_id = await self.tr.ticker(isin, exchange=pos['exchangeIds'][0])
+                subscriptions[subscription_id] = pos
+            else:
+                pos['netValue'] = float(pos['averageBuyIn'] )* float(pos['netSize'])
+
+        while len(subscriptions) > 0:
+            subscription_id, subscription, response = await self.tr.recv()
+
+            if subscription['type'] == 'ticker':
+                await self.tr.unsubscribe(subscription_id)
+                pos = subscriptions[subscription_id]
+                subscriptions.pop(subscription_id, None)
+                pos['netValue'] = float(response['last']['price']) * float(pos['netSize'])
+            else:
+                print(f"unmatched subscription of type '{subscription['type']}':\n{preview(response)}")
+
+    def portfolio_to_csv(self, output_path):
+        positions = self.portfolio['positions']
+        csv_lines = []
+        for pos in sorted(positions, key=lambda x: x['netSize'], reverse=True):
+            csv_lines.append(
+                f"{pos['name']};{pos['instrumentId']};{float(pos['averageBuyIn']):.2f};{float(pos['netValue']):.2f}"
+            )
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write('Name;ISIN;avgCost;netValue\n')
+            f.write('\n'.join(csv_lines))
+        
+        print(f'Wrote {len(csv_lines) + 1} lines to {output_path}')
 
     def overview(self):
         # for x in ['netValue', 'unrealisedProfit', 'unrealisedProfitPercent', 'unrealisedCost']:
