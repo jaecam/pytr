@@ -51,7 +51,7 @@ class Details:
             if recv == 6:
                 return
 
-    def print_instrument(self):
+    async def print_instrument(self):
         print('Name:', self.instrument['name'])
         print('ShortName:', self.instrument['shortName'])
         print('Type:', self.instrument['typeId'])
@@ -60,6 +60,8 @@ class Details:
 
         for tag in self.instrument['tags']:
             print(f"{tag['type']}: {tag['name']}")
+        
+        await self.stock_price()
 
     def stock_details(self):
         company = self.stockDetails['company']
@@ -72,7 +74,7 @@ class Details:
 
     def news(self, relevant_days=30):
         since = datetime.now() - timedelta(days=relevant_days)
-        if not hasattr(news, 'neonNews'):
+        if not hasattr(self, 'neonNews'):
             return
         for news in self.neonNews:
             newsdate = datetime.fromtimestamp(news['createdAt'] / 1000.0)
@@ -80,12 +82,44 @@ class Details:
                 dateiso = newsdate.isoformat(sep=' ', timespec='minutes')
                 print(f"{dateiso}: {news['headline']}")
 
-    def overview(self):
-        self.print_instrument()
+    async def overview(self):
+        await self.print_instrument()
         self.news()
         self.stock_details()
 
     def get(self):
         asyncio.get_event_loop().run_until_complete(self.details_loop())
 
-        self.overview()
+        asyncio.get_event_loop().run_until_complete(self.overview())
+
+    async def stock_price(self):
+        subscriptions = {}
+        subscription_id = await self.tr.instrument_details(self.isin)
+        subscription_id, subscription, response = await self.tr.recv()
+        await self.tr.unsubscribe(subscription_id)
+        exchangeIds = response['exchangeIds']
+        # Populate netValue for each ISIN
+        subscriptions = {}
+        if len(exchangeIds) > 0:
+            for exchange in exchangeIds:
+                subscription_id = await self.tr.ticker(self.isin, exchange=exchange)
+                pos = {}
+                pos['name'] = response['shortName']
+                pos['exchangeId'] = exchange
+                subscriptions[subscription_id] = pos
+
+        exchanges = {}
+        while len(subscriptions) > 0:
+            subscription_id, subscription, response = await self.tr.recv()
+            if subscription['type'] == 'ticker':
+                await self.tr.unsubscribe(subscription_id)
+                exchangeId = subscriptions[subscription_id]['exchangeId']
+                subscriptions.pop(subscription_id, None)
+                
+                exchanges[exchangeId] = response
+
+        for exchange, offers in exchanges.items():
+            print(
+                f"{exchange[:3]:<4} {float(offers['bid']['price']):>10.4f} {float(offers['ask']['price']):>10.4f}"
+                )
+            print(offers)

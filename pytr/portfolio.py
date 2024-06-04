@@ -76,6 +76,11 @@ class Portfolio:
                 pos = subscriptions[subscription_id]
                 subscriptions.pop(subscription_id, None)
                 pos['netValue'] = float(response['last']['price']) * float(pos['netSize'])
+                pos['spread'] = (float(response['bid']['price']) - float(response['ask']['price']))/float(response['bid']['price'])
+                pos['lastPrice'] = response['last']['price']
+                pos['bidPrice'] = response['bid']['price']
+                pos['askPrice'] = response['ask']['price']
+
             else:
                 print(f"unmatched subscription of type '{subscription['type']}':\n{preview(response)}")
 
@@ -116,8 +121,9 @@ class Portfolio:
             totalNetValue += float(pos['netValue'])
 
             print(
-                f"{pos['name']:<25} {pos['instrumentId']} {float(pos['averageBuyIn']):>10.2f} * {float(pos['netSize']):>10.2f}"
+                f"{pos['name'][:25]:<25} {pos['instrumentId']} {float(pos['averageBuyIn']):>10.2f} * {float(pos['netSize']):>10.2f}"
                 + f" = {float(buyCost):>10.2f} -> {float(pos['netValue']):>10.2f} {diff:>10.2f} {diffP:>7.1f}%"
+                +f"{pos.get('spread', 0)*100:>7.1f}% {pos.get('lastPrice', 0):<8} {pos.get('askPrice', 0):<8} {pos.get('bidPrice', 0):<8}"
             )
 
         print(

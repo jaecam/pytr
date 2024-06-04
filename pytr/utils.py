@@ -212,12 +212,12 @@ def export_transactions(input_path, output_path, lang='auto'):
     log.info('Write deposit entries')
     with open(output_path, 'w', encoding='utf-8') as f:
         # f.write('Datum;Typ;Stück;amount;Wert;Gebühren;ISIN;name\n')
-        csv_fmt = '{date};{type};{value}\n'
-        header = csv_fmt.format(date=i18n['date'][lang], type=i18n['type'][lang], value=i18n['value'][lang])
+        csv_fmt = '{date};{type};{value};{name}\n'
+        header = csv_fmt.format(date=i18n['date'][lang], type=i18n['type'][lang], value=i18n['value'][lang], name='Name')
         f.write(header)
 
         for event in timeline:
-            dateTime = datetime.fromisoformat(event['timestamp'])
+            dateTime = datetime.fromisoformat(event['timestamp'][:19])
             date = dateTime.strftime('%Y-%m-%d')
 
             title = event['title']
@@ -225,6 +225,11 @@ def export_transactions(input_path, output_path, lang='auto'):
                 body = event['body']
             except KeyError:
                 body = ''
+
+            try:
+                name = title
+            except KeyError:
+                name = ''
 
             if 'storniert' in body:
                 continue
@@ -237,17 +242,17 @@ def export_transactions(input_path, output_path, lang='auto'):
 
             # Cash in
             if event["eventType"] in ("PAYMENT_INBOUND", "PAYMENT_INBOUND_SEPA_DIRECT_DEBIT"):
-                f.write(csv_fmt.format(date=date, type=i18n['deposit'][lang], value=amount))
+                f.write(csv_fmt.format(date=date, type=i18n['deposit'][lang], value=amount, name=name))
             elif event["eventType"] == "PAYMENT_OUTBOUND":
-                f.write(csv_fmt.format(date=date, type=i18n['removal'][lang], value=amount))
+                f.write(csv_fmt.format(date=date, type=i18n['removal'][lang], value='-'+amount, name=name))
             elif event["eventType"] == "INTEREST_PAYOUT_CREATED":
-                f.write(csv_fmt.format(date=date, type=i18n['interest'][lang], value=amount))
+                f.write(csv_fmt.format(date=date, type=i18n['interest'][lang], value=amount, name=name))
             # Dividend - Shares
             elif title == 'Reinvestierung':
                 # TODO: Implement reinvestment
                 log.warning('Detected reivestment, skipping... (not implemented yet)')
             elif event["eventType"] == "card_successful_transaction":
-                f.write(csv_fmt.format(date=date, type=i18n['card transaction'][lang], value=amount))
+                f.write(csv_fmt.format(date=date, type=i18n['card transaction'][lang], value='-'+amount, name=name))
 
     log.info('Deposit creation finished!')
 
@@ -415,6 +420,7 @@ class Timeline:
         if isSavingsPlan:
             subfolder = 'Sparplan'
         else:
+            import pdb; pdb.set_trace()
             subfolder = {
                 'benefits_saveback_execution': 'Saveback',
                 'benefits_spare_change_execution': 'RoundUp',
@@ -447,3 +453,8 @@ class Timeline:
             export_transactions(dl.output_path / 'events_with_documents.json', dl.output_path / 'account_transactions.csv')
 
             dl.work_responses()
+
+input_path = '/home/jens/Documents/7_krims_krams/14_traderepublic/pytr/events_with_documents.json'
+output_path = '/home/jens/Documents/7_krims_krams/14_traderepublic/pytr/account_transactions2.csv'
+
+export_transactions(input_path, output_path, lang='auto')

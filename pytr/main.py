@@ -16,6 +16,7 @@ from pytr.account import login
 from pytr.portfolio import Portfolio
 from pytr.alarms import Alarms
 from pytr.details import Details
+from pytr.liveticker import Liveticker
 
 
 def get_main_parser():
@@ -114,6 +115,16 @@ def get_main_parser():
         description=info,
     )
     parser_details.add_argument('isin', help='ISIN of intrument')
+    # liveticker
+    info = 'Get a live ticker for an ISIN'
+    parser_lt = parser_cmd.add_parser(
+        'lt',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[parser_login_args],
+        help=info,
+        description=info,
+    )
+    parser_lt.add_argument('isin', help='ISIN of intrument')
     # get_price_alarms
     info = 'Get overview of current price alarms'
     parser_cmd.add_parser(
@@ -216,6 +227,8 @@ def main():
         Alarms(login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin)).get()
     elif args.command == 'details':
         Details(login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin), args.isin).get()
+    elif args.command == 'lt':
+        Liveticker(login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin), args.isin).get()
     elif args.command == 'portfolio':
         p = Portfolio(login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin))
         p.get()
