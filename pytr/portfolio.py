@@ -1,11 +1,14 @@
 import asyncio
 
 from pytr.utils import preview
+from pytr.utils import get_logger
 
 
 class Portfolio:
     def __init__(self, tr):
         self.tr = tr
+        self.log = get_logger(__name__)
+        
 
     async def portfolio_loop(self):
         recv = 0
@@ -48,15 +51,21 @@ class Portfolio:
             subscriptions[subscription_id] = pos
 
         while len(subscriptions) > 0:
-            subscription_id, subscription, response = await self.tr.recv()
-
-            if subscription['type'] == 'ticker':
-                await self.tr.unsubscribe(subscription_id)
-                pos = subscriptions[subscription_id]
-                subscriptions.pop(subscription_id, None)
-                pos['netValue'] = float(response['last']['price']) * float(pos['netSize'])
-            else:
-                print(f"unmatched subscription of type '{subscription['type']}':\n{preview(response)}")
+            try:
+                subscription_id, subscription, response = await asyncio.wait_for(self.tr.recv(), timeout=1)
+                if subscription['type'] == 'ticker':
+                    await self.tr.unsubscribe(subscription_id)
+                    pos = subscriptions[subscription_id]
+                    subscriptions.pop(subscription_id, None)
+                    pos['netValue'] = float(response['last']['price']) * float(pos['netSize'])
+                else:
+                    self.log.debug(f"unmatched subscription of type '{subscription['type']}':\n{preview(response)}")
+                    subscriptions.pop(subscription_id, None)
+            except asyncio.TimeoutError:
+                self.log.debug(f"Timeout. Removing left subscriptions")
+                subscription_id, pos = subscriptions.popitem()
+                pos['netValue'] = 0
+                
 
         # Populate name for each ISIN
         subscriptions = {}
@@ -74,7 +83,21 @@ class Portfolio:
                 subscriptions.pop(subscription_id, None)
                 pos['name'] = response['shortName']
             else:
-                print(f"unmatched subscription of type '{subscription['type']}':\n{preview(response)}")
+                self.log.debug(f"unmatched subscription of type '{subscription['type']}':\n{preview(response)}")
+
+    def portfolio_to_csv(self, output_path):
+        positions = self.portfolio['positions']
+        csv_lines = []
+        for pos in sorted(positions, key=lambda x: x['netSize'], reverse=True):
+            csv_lines.append(
+                f"{pos['name']};{pos['instrumentId']};{float(pos['averageBuyIn']):.2f};{float(pos['netValue']):.2f}"
+            )
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write('Name;ISIN;avgCost;netValue\n')
+            f.write('\n'.join(csv_lines))
+        
+        print(f'Wrote {len(csv_lines) + 1} lines to {output_path}')
 
     def overview(self):
         # for x in ['netValue', 'unrealisedProfit', 'unrealisedProfitPercent', 'unrealisedCost']:
@@ -99,7 +122,7 @@ class Portfolio:
             totalNetValue += float(pos['netValue'])
 
             print(
-                f"{pos['name']:<25} {pos['instrumentId']} {float(pos['averageBuyIn']):>10.2f} * {float(pos['netSize']):>10.2f}"
+                f"{pos['name'][:25]:<25} {pos['instrumentId']} {float(pos['averageBuyIn']):>10.2f} * {float(pos['netSize']):>10.2f}"
                 + f" = {float(buyCost):>10.2f} -> {float(pos['netValue']):>10.2f} {diff:>10.2f} {diffP:>7.1f}%"
             )
 
