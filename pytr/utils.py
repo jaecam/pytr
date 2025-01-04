@@ -424,9 +424,13 @@ class Timeline:
         for section in response['sections']:
             if section['type'] == 'documents':
                 for doc in section['data']:
+                    if not 'detail' in doc:
+                        self.log.warning(f"Failed to find date in detail section for event {event['title']} (event type = `{event['eventType']}`). Skipping...")
+                        continue
+
                     try:
                         timestamp = datetime.strptime(doc['detail'], '%d.%m.%Y').timestamp() * 1000
-                    except ValueError:
+                    except (ValueError, KeyError):
                         timestamp = datetime.now().timestamp() * 1000
                     if max_age_timestamp == 0 or max_age_timestamp < timestamp:
                         # save all savingsplan documents in a subdirectory
