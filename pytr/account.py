@@ -7,6 +7,7 @@ from getpass import getpass
 from pytr.api import TradeRepublicApi, CREDENTIALS_FILE
 from pytr.utils import get_logger
 
+from namedpipe import NPopen
 
 def get_settings(tr):
     formatted_json = json.dumps(tr.settings(), indent=2)
@@ -19,7 +20,7 @@ def get_settings(tr):
         return formatted_json
 
 
-def login(phone_no=None, pin=None, web=True):
+def login(phone_no=None, pin=None, web=True, named_pipe=False):
     """
     If web is true, use web login method as else simulate app login.
     Check if credentials file exists else create it.
@@ -28,7 +29,19 @@ def login(phone_no=None, pin=None, web=True):
     log = get_logger(__name__)
     save_cookies = True
 
-    if phone_no is None and CREDENTIALS_FILE.is_file():
+    if named_pipe is True:
+        log.info("Using named pipe instead of stdin/credential file...")
+        with NPopen('rt', encoding="utf-8", newline='') as pipe:
+            log.info("Creating named pipe...")
+
+            print(f"[PIPE]{pipe.path}")
+            stream = pipe.wait()
+
+            phone_no = stream.readline().strip()
+            pin = stream.readline().strip()
+
+            log.info("Credentials received")
+    elif phone_no is None and CREDENTIALS_FILE.is_file():
         log.info("Found credentials file")
         with open(CREDENTIALS_FILE) as f:
             lines = f.readlines()

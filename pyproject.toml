@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel", "babel"]
+requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,10 +7,10 @@ name = "pytr"
 version = "0.3.1"
 description = "Use TradeRepublic in terminal"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [
-    { name = "marzzzello", email = "853485-marzzzello@users.noreply.gitlab.com" }
+    { name = "marzzzello", email = "853485-marzzzello@users.noreply.gitlab.com" },
 ]
 urls = { "Homepage" = "https://gitlab.com/pytr-org/pytr/" }
 classifiers = [
@@ -32,6 +32,7 @@ dependencies = [
     "shtab",
     "websockets>=10.1",
     "babel",
+    "namedpipe",
 ]
 
 [project.scripts]
@@ -43,3 +44,6 @@ packages = ["pytr"]
 
 [tool.setuptools.package-data]
 pytr = ["pytr/locale/*/*/*.mo", "pytr/locale/*/*/*.po"]
+
+[tool.pdm]
+distribution = true

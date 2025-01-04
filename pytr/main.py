@@ -65,6 +65,9 @@ def get_main_parser():
         "-n", "--phone_no", help="TradeRepublic phone number (international format)"
     )
     parser_login_args.add_argument("-p", "--pin", help="TradeRepublic pin")
+    
+    # Named pipe credential stuff
+    parser_login_args.add_argument("--named-pipe", help="Use named pipe rather than stdin or credential file")
 
     # sort
     parser_sort_export = argparse.ArgumentParser(add_help=False)
@@ -245,7 +248,7 @@ def main():
     log.debug("logging is set to debug")
 
     if args.command == "login":
-        login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin)
+        login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin, named_pipe=args.named_pipe)
 
     elif args.command == "dl_docs":
         if args.last_days == 0:
@@ -255,7 +258,7 @@ def main():
                 datetime.now().astimezone() - timedelta(days=args.last_days)
             ).timestamp()
         dl = DL(
-            login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin),
+            login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin, named_pipe=args.named_pipe),
             args.output,
             args.format,
             since_timestamp=since_timestamp,
@@ -268,15 +271,15 @@ def main():
         # TODO
         print("Not implemented yet")
     elif args.command == "get_price_alarms":
-        Alarms(login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin)).get()
+        Alarms(login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin, named_pipe=args.named_pipe)).get()
     elif args.command == "details":
         Details(
-            login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin),
+            login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin, named_pipe=args.named_pipe),
             args.isin,
         ).get()
     elif args.command == "portfolio":
         p = Portfolio(
-            login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin)
+            login(phone_no=args.phone_no, pin=args.pin, web=not args.applogin, named_pipe=args.named_pipe)
         )
         p.get()
         if args.output is not None:
