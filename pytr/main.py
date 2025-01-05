@@ -67,7 +67,7 @@ def get_main_parser():
     parser_login_args.add_argument("-p", "--pin", help="TradeRepublic pin")
     
     # Named pipe credential stuff
-    parser_login_args.add_argument("--named-pipe", help="Use named pipe rather than stdin or credential file")
+    parser_login_args.add_argument("--named-pipe", help="Use named pipe rather than stdin or credential file", action="store_true")
 
     # sort
     parser_sort_export = argparse.ArgumentParser(add_help=False)
