@@ -34,7 +34,7 @@ def login(phone_no=None, pin=None, web=True, named_pipe=False):
         with NPopen('rt', encoding="utf-8", newline='') as pipe:
             log.info("Creating named pipe...")
 
-            print(f"[PIPE]{pipe.path}")
+            print(f"[PIPE]{pipe.path}", flush=True)
             stream = pipe.wait()
 
             phone_no = stream.readline().strip()
