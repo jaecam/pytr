@@ -36,11 +36,12 @@ def login(phone_no=None, pin=None, web=True, named_pipe=False):
 
             print(f"[PIPE]{pipe.path}", flush=True)
             stream = pipe.wait()
-
+            
             phone_no = stream.readline().strip()
             pin = stream.readline().strip()
 
             log.info("Credentials received")
+            print(f"test :: phone_no : '{phone_no}' ; pin : '{pin}'")
     elif phone_no is None and CREDENTIALS_FILE.is_file():
         log.info("Found credentials file")
         with open(CREDENTIALS_FILE) as f:
@@ -79,7 +80,7 @@ def login(phone_no=None, pin=None, web=True, named_pipe=False):
 
     tr = TradeRepublicApi(phone_no=phone_no, pin=pin, save_cookies=save_cookies)
 
-    if web:
+    '''if web:
         # Use same login as app.traderepublic.com
         if tr.resume_websession():
             log.info("Web session resumed")
@@ -128,3 +129,4 @@ def login(phone_no=None, pin=None, web=True, named_pipe=False):
     log.info("Logged in")
     # log.debug(get_settings(tr))
     return tr
+    '''

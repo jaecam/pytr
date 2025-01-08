@@ -266,7 +266,7 @@ def main():
             universal_filepath=args.universal,
             sort_export=args.sort,
         )
-        asyncio.get_event_loop().run_until_complete(dl.dl_loop())
+        #asyncio.get_event_loop().run_until_complete(dl.dl_loop())
     elif args.command == "set_price_alarms":
         # TODO
         print("Not implemented yet")

@@ -103,6 +103,9 @@ class TradeRepublicApi:
             pathlib.Path(cookies_file) if cookies_file else COOKIES_FILE
         )
 
+        self.log.info("api.py :::: phone_no : '%s' ; pin : '%s'", phone_no, pin)
+        self.log.info(f'api.py :::: is not phone_no? : "{bool(phone_no)}" ; is not pin? : "{bool(pin)}"')
+
         if not (phone_no and pin):
             try:
                 with open(self._credentials_file, "r") as f:
